@@ -14,10 +14,13 @@ level = "info"
 
 [server]
 headless = true
-enableXsrfProtection = true
-enableCORS = false
+enableXsrfProtection = false
+enableCORS = true
 maxUploadSize = 200
+port = 8501
+enableWebsocketCompression = true
+allowRunOnSave = false
 
 [browser]
 gatherUsageStats = false
-serverAddress = "localhost"
+serverAddress = "0.0.0.0"
