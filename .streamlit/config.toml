@@ -17,7 +17,7 @@ headless = true
 enableXsrfProtection = false
 enableCORS = true
 maxUploadSize = 200
-port = 8501
+port = 8502
 enableWebsocketCompression = true
 allowRunOnSave = false
 
