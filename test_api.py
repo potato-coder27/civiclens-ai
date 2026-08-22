@@ -61,13 +61,13 @@ def test_api():
     # Test 5: Priority calculation
     print("\n✓ Testing Priority Score Calculation...")
     try:
-        payload = {
+        params = {
             "severity": "HIGH",
             "category": "Road Damage",
             "duplicate_count": 2,
             "location_name": "Main Street"
         }
-        r = requests.post(f"{BASE_URL}/api/priority/calculate", json=payload, timeout=5)
+        r = requests.post(f"{BASE_URL}/api/priority/calculate", params=params, timeout=5)
         data = r.json()
         print(f"  Score: {data['score']}/100")
         print(f"  Label: {data['label']}")

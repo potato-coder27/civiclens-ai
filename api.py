@@ -300,12 +300,12 @@ async def check_duplicates(
 
 @app.post("/api/priority/calculate")
 async def calculate_priority(
-    severity: str,
-    category: str,
-    duplicate_count: int = 0,
-    location_name: str = "",
-    latitude: float = 0.0,
-    longitude: float = 0.0
+    severity: str = Query(...),
+    category: str = Query(...),
+    duplicate_count: int = Query(0),
+    location_name: str = Query(""),
+    latitude: float = Query(0.0),
+    longitude: float = Query(0.0)
 ):
     """
     Calculate transparent priority score.
