@@ -1,0 +1,9 @@
+{
+  "name": "civiclens-ai",
+  "version": "1.0.0",
+  "description": "AI-powered civic problem detection platform",
+  "scripts": {
+    "start": "python api.py",
+    "dev": "streamlit run app.py"
+  }
+}
