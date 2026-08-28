@@ -81,6 +81,15 @@ streamlit run app.py
 
 Open your browser at: **http://localhost:8501**
 
+## Deploy on Streamlit Community Cloud
+
+1. Push this repository to GitHub.
+2. Open [Streamlit Community Cloud](https://share.streamlit.io/) and select **Create app**.
+3. Choose the repository and branch, then set **Main file path** to `app.py`.
+4. Click **Deploy**. Streamlit Cloud installs `requirements.txt` automatically.
+
+This project does not require API keys. Its SQLite database and uploaded images use the app filesystem, so user-created data is temporary and can be reset when the app is redeployed or restarted. The seven demo reports are seeded automatically on a fresh instance.
+
 ### Open on another device on the same Wi-Fi
 
 1. Start the app on the host computer with `streamlit run app.py`.
