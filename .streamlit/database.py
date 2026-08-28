@@ -465,6 +465,19 @@ def get_reports_over_time() -> list:
     return rows
 
 
+def get_location_data() -> list:
+    """Get all report locations for heatmap."""
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("""
+        SELECT id, latitude, longitude, category, severity, priority_score, location_name
+        FROM reports WHERE latitude != 0 OR longitude != 0
+    """)
+    rows = [dict(r) for r in cursor.fetchall()]
+    conn.close()
+    return rows
+
+
 def get_priority_distribution() -> list:
     """Get priority score buckets."""
     conn = get_connection()

@@ -339,10 +339,10 @@ st.markdown("""
 
 col1, col2, col3 = st.columns([1.5, 1.5, 1])
 with col1:
-    if st.button("📸  Report a Problem", width="stretch", type="primary"):
+    if st.button("📸  Report a Problem", use_container_width=True, type="primary"):
         st.switch_page("pages/1_Report_Problem.py")
 with col2:
-    if st.button("📊  View Dashboard", width="stretch"):
+    if st.button("📊  View Dashboard", use_container_width=True):
         st.switch_page("pages/2_Dashboard.py")
 
 # ─── Live Stats Bar ───────────────────────────────────────────────────────────

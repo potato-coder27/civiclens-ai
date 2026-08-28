@@ -71,7 +71,7 @@ with st.sidebar:
     if all_reports:
         report_options = {f"#{r['id']} — {r['category']} ({r['severity']})": r["id"] for r in all_reports}
         selected_label = st.selectbox("Choose a report", list(report_options.keys()), label_visibility="collapsed")
-        if st.button("Load Report", use_container_width=True, type="primary"):
+        if st.button("Load Report", width="stretch", type="primary"):
             st.session_state["selected_report_id"] = report_options[selected_label]
             st.rerun()
 
@@ -177,7 +177,7 @@ with col_left:
     img_path = report.get("image_path", "")
     if img_path and os.path.exists(img_path):
         img = Image.open(img_path)
-        st.image(img, caption=f"📷 {category} — {report['location_name']}", use_container_width=True)
+        st.image(img, caption=f"📷 {category} — {report['location_name']}", width="stretch")
     else:
         # Placeholder for demo images
         st.markdown(f"""
@@ -305,7 +305,7 @@ with upd1:
         label_visibility="collapsed"
     )
 with upd2:
-    if st.button("✅ Update Status", use_container_width=True, type="primary"):
+    if st.button("✅ Update Status", width="stretch", type="primary"):
         update_report_status(report_id, new_status)
         st.success(f"Status updated to **{new_status}**")
         st.rerun()
@@ -426,7 +426,7 @@ with pdf_col:
             data=pdf_bytes,
             file_name=f"civiclens_report_{report['id']}_{datetime.now().strftime('%Y%m%d')}.pdf",
             mime="application/pdf",
-            use_container_width=True
+            width="stretch"
         )
     else:
         st.info("Install `reportlab` to enable PDF export: `pip install reportlab`")
@@ -443,7 +443,7 @@ with csv_col:
         data=csv_buffer.getvalue().encode("utf-8"),
         file_name=f"civiclens_report_{report['id']}.csv",
         mime="text/csv",
-        use_container_width=True
+        width="stretch"
     )
 
 # ─── Navigation ───────────────────────────────────────────────────────────────
@@ -451,11 +451,11 @@ with csv_col:
 st.markdown("<br>", unsafe_allow_html=True)
 nb1, nb2, nb3 = st.columns(3)
 with nb1:
-    if st.button("◀ Back to Dashboard", use_container_width=True):
+    if st.button("◀ Back to Dashboard", width="stretch"):
         st.switch_page("pages/2_Dashboard.py")
 with nb2:
-    if st.button("📸 Submit New Report", use_container_width=True, type="primary"):
+    if st.button("📸 Submit New Report", width="stretch", type="primary"):
         st.switch_page("pages/1_Report_Problem.py")
 with nb3:
-    if st.button("🏠 Home", use_container_width=True):
+    if st.button("🏠 Home", width="stretch"):
         st.switch_page("app.py")

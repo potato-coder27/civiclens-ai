@@ -81,18 +81,6 @@ streamlit run app.py
 
 Open your browser at: **http://localhost:8501**
 
-### Open on another device on the same Wi-Fi
-
-1. Start the app on the host computer with `streamlit run app.py`.
-2. Find the host computer's Wi-Fi IPv4 address with `ipconfig`.
-3. On the other device, open `http://<HOST-IP>:8501`.
-
-For example, if the host IP is `192.168.30.240`, open **http://192.168.30.240:8501**. Both devices must be connected to the same Wi-Fi network. If Windows Firewall blocks the connection, allow inbound TCP port `8501` for Private networks:
-
-```powershell
-New-NetFirewallRule -DisplayName "CivicLens Streamlit 8501" -Direction Inbound -Protocol TCP -LocalPort 8501 -Action Allow -Profile Private
-```
-
 ---
 
 ## 🔑 API Keys

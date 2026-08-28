@@ -17,7 +17,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 from database import (
     get_all_reports, get_stats, get_category_distribution,
     get_severity_distribution, get_reports_over_time,
-    get_location_data, get_priority_distribution
+    get_priority_distribution
 )
 
 # ─── Page Config ──────────────────────────────────────────────────────────────
@@ -105,7 +105,7 @@ with st.sidebar:
     sort_order = st.selectbox("Order", ["DESC", "ASC"], key="dash_order")
 
     st.divider()
-    if st.button("🔄 Refresh Data", use_container_width=True):
+    if st.button("🔄 Refresh Data", width="stretch"):
         st.rerun()
 
 # ─── Load Data ────────────────────────────────────────────────────────────────
@@ -124,7 +124,6 @@ all_reports = get_all_reports(filters)
 cat_dist = get_category_distribution()
 sev_dist = get_severity_distribution()
 time_data = get_reports_over_time()
-loc_data = get_location_data()
 priority_scores = get_priority_distribution()
 
 # ─── Header ───────────────────────────────────────────────────────────────────
@@ -182,7 +181,7 @@ with ch1:
             hovertemplate="<b>%{label}</b><br>%{value} reports (%{percent})<extra></extra>"
         ))
         fig.update_layout(**PLOTLY_LAYOUT, height=280, showlegend=False)
-        st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False})
+        st.plotly_chart(fig, width="stretch", config={"displayModeBar": False})
     else:
         st.info("No data yet")
     st.markdown('</div>', unsafe_allow_html=True)
@@ -208,7 +207,7 @@ with ch2:
             hovertemplate="<b>%{x}</b><br>%{y} reports<extra></extra>"
         ))
         fig.update_layout(**PLOTLY_LAYOUT, height=280, bargap=0.3)
-        st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False})
+        st.plotly_chart(fig, width="stretch", config={"displayModeBar": False})
     else:
         st.info("No data yet")
     st.markdown('</div>', unsafe_allow_html=True)
@@ -232,14 +231,14 @@ with ch3:
         ))
         fig.update_layout(**PLOTLY_LAYOUT, height=280,
                           xaxis_title="Priority Score", yaxis_title="Count")
-        st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False})
+        st.plotly_chart(fig, width="stretch", config={"displayModeBar": False})
     else:
         st.info("No data yet")
     st.markdown('</div>', unsafe_allow_html=True)
 
-# ─── Row 2: Time Series + Map ─────────────────────────────────────────────────
+# ─── Row 2: Time Series ──────────────────────────────────────────────────────
 
-ch4, ch5 = st.columns([1.2, 1])
+ch4 = st.container()
 
 # Reports over time
 with ch4:
@@ -260,43 +259,9 @@ with ch4:
             hovertemplate="%{x|%d %b %Y}: %{y} reports<extra></extra>"
         ))
         fig.update_layout(**PLOTLY_LAYOUT, height=260, xaxis_title="Date", yaxis_title="Reports")
-        st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False})
+        st.plotly_chart(fig, width="stretch", config={"displayModeBar": False})
     else:
         st.info("No time data yet")
-    st.markdown('</div>', unsafe_allow_html=True)
-
-# Location Map
-with ch5:
-    st.markdown('<div class="chart-container">', unsafe_allow_html=True)
-    st.markdown('<div class="section-header">🗺️ Location Heatmap</div>', unsafe_allow_html=True)
-    if loc_data:
-        df_loc = pd.DataFrame(loc_data)
-        df_loc = df_loc[df_loc["latitude"] != 0]
-        if not df_loc.empty:
-            fig = px.scatter_mapbox(
-                df_loc,
-                lat="latitude",
-                lon="longitude",
-                color="severity",
-                size="priority_score",
-                size_max=20,
-                hover_name="location_name",
-                hover_data={"category": True, "priority_score": True, "severity": True, "latitude": False, "longitude": False},
-                color_discrete_map=SEVERITY_COLORS,
-                zoom=10,
-                height=260
-            )
-            fig.update_layout(
-                mapbox_style="carto-darkmatter",
-                paper_bgcolor="rgba(0,0,0,0)",
-                margin=dict(l=0, r=0, t=0, b=0),
-                legend=dict(bgcolor="rgba(13,19,33,0.8)", font=dict(color="#9ca3af"))
-            )
-            st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False})
-        else:
-            st.info("No location data with GPS coordinates")
-    else:
-        st.info("No location data yet")
     st.markdown('</div>', unsafe_allow_html=True)
 
 # ─── Recent Reports Table ─────────────────────────────────────────────────────
@@ -321,7 +286,7 @@ if all_reports:
             data=csv_data,
             file_name=f"civiclens_reports_{datetime.now().strftime('%Y%m%d_%H%M')}.csv",
             mime="text/csv",
-            use_container_width=True
+            width="stretch"
         )
 
     # Display table
@@ -360,7 +325,7 @@ if all_reports:
                         {'Open' if status=='Open' else ('⏳ In Progress' if status=='In Progress' else '✅ Resolved')}
                     </span></div>""", unsafe_allow_html=True)
             with rc6:
-                if st.button("View", key=f"view_{report['id']}", use_container_width=True):
+                if st.button("View", key=f"view_{report['id']}", width="stretch"):
                     st.session_state["selected_report_id"] = report["id"]
                     st.switch_page("pages/3_Report_Details.py")
 

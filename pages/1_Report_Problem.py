@@ -10,8 +10,11 @@ import os
 import io
 import json
 import uuid
+from urllib.parse import quote
+from urllib.request import Request, urlopen
 from datetime import datetime
 from PIL import Image
+import pandas as pd
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 
@@ -19,6 +22,26 @@ from database import insert_report
 from ai_analyzer import analyze_image, CATEGORIES
 from priority_engine import calculate_priority_score, get_score_label, get_score_breakdown_text
 from duplicate_detector import find_duplicates
+
+
+def search_india_places(place_query: str) -> list:
+    """Search Indian districts, villages, towns, and cities."""
+    query = quote(f"{place_query}, India")
+    request = Request(
+        f"https://nominatim.openstreetmap.org/search?format=jsonv2&limit=8&addressdetails=1&q={query}",
+        headers={"User-Agent": "CivicLensAI/1.0 civic-reporting-demo"},
+    )
+    with urlopen(request, timeout=8) as response:
+        search_data = json.loads(response.read().decode("utf-8"))
+    return [
+        {
+            "location": item.get("display_name", "India place"),
+            "state": item.get("address", {}).get("state", "India"),
+            "latitude": float(item["lat"]),
+            "longitude": float(item["lon"]),
+        }
+        for item in search_data
+    ]
 
 # ─── Page Config ──────────────────────────────────────────────────────────────
 
@@ -98,6 +121,14 @@ if "submitted_report_id" not in st.session_state:
     st.session_state.submitted_report_id = None
 if "form_image_bytes" not in st.session_state:
     st.session_state.form_image_bytes = None
+if "selected_location" not in st.session_state:
+    st.session_state.selected_location = None
+if "location_search_results" not in st.session_state:
+    st.session_state.location_search_results = []
+if "district_search_results" not in st.session_state:
+    st.session_state.district_search_results = []
+if "village_search_results" not in st.session_state:
+    st.session_state.village_search_results = []
 
 # ─── Form ─────────────────────────────────────────────────────────────────────
 
@@ -140,24 +171,212 @@ if st.session_state.analysis_result is None:
             image_bytes = image_source.read()
             filename = getattr(image_source, "name", "captured_image.jpg")
             img = Image.open(io.BytesIO(image_bytes))
-            st.image(img, caption="📷 Uploaded Image", use_container_width=True)
+            st.image(img, caption="📷 Uploaded Image", width="stretch")
             st.markdown(f"<div style='font-size:0.75rem;color:#6b7280;'>File: {filename} · {len(image_bytes)//1024}KB · {img.width}×{img.height}px</div>", unsafe_allow_html=True)
 
         st.markdown("<br>", unsafe_allow_html=True)
 
         # Location
         st.markdown("**📍 Location Details**")
+        st.markdown(
+            "<div style='font-size:0.8rem;color:#9ca3af;margin-bottom:8px;'>Select any Indian state or union territory, then refine the area and coordinates below if needed.</div>",
+            unsafe_allow_html=True
+        )
+
+        india_locations = pd.DataFrame([
+            {"location": "Andhra Pradesh - Amaravati", "state": "Andhra Pradesh", "latitude": 16.5062, "longitude": 80.6480},
+            {"location": "Arunachal Pradesh - Itanagar", "state": "Arunachal Pradesh", "latitude": 27.0844, "longitude": 93.6053},
+            {"location": "Assam - Dispur", "state": "Assam", "latitude": 26.1433, "longitude": 91.7898},
+            {"location": "Bihar - Patna", "state": "Bihar", "latitude": 25.5941, "longitude": 85.1376},
+            {"location": "Chhattisgarh - Raipur", "state": "Chhattisgarh", "latitude": 21.2514, "longitude": 81.6296},
+            {"location": "Goa - Panaji", "state": "Goa", "latitude": 15.4909, "longitude": 73.8278},
+            {"location": "Gujarat - Gandhinagar", "state": "Gujarat", "latitude": 23.2156, "longitude": 72.6369},
+            {"location": "Haryana - Chandigarh", "state": "Haryana", "latitude": 30.7333, "longitude": 76.7794},
+            {"location": "Himachal Pradesh - Shimla", "state": "Himachal Pradesh", "latitude": 31.1048, "longitude": 77.1734},
+            {"location": "Jharkhand - Ranchi", "state": "Jharkhand", "latitude": 23.3441, "longitude": 85.3096},
+            {"location": "Karnataka - Bengaluru", "state": "Karnataka", "latitude": 12.9716, "longitude": 77.5946},
+            {"location": "Kerala - Thiruvananthapuram", "state": "Kerala", "latitude": 8.5241, "longitude": 76.9366},
+            {"location": "Madhya Pradesh - Bhopal", "state": "Madhya Pradesh", "latitude": 23.2599, "longitude": 77.4126},
+            {"location": "Maharashtra - Mumbai", "state": "Maharashtra", "latitude": 19.0760, "longitude": 72.8777},
+            {"location": "Manipur - Imphal", "state": "Manipur", "latitude": 24.8170, "longitude": 93.9368},
+            {"location": "Meghalaya - Shillong", "state": "Meghalaya", "latitude": 25.5788, "longitude": 91.8933},
+            {"location": "Mizoram - Aizawl", "state": "Mizoram", "latitude": 23.7271, "longitude": 92.7176},
+            {"location": "Nagaland - Kohima", "state": "Nagaland", "latitude": 25.6751, "longitude": 94.1086},
+            {"location": "Odisha - Bhubaneswar", "state": "Odisha", "latitude": 20.2961, "longitude": 85.8245},
+            {"location": "Punjab - Chandigarh", "state": "Punjab", "latitude": 30.7333, "longitude": 76.7794},
+            {"location": "Rajasthan - Jaipur", "state": "Rajasthan", "latitude": 26.9124, "longitude": 75.7873},
+            {"location": "Sikkim - Gangtok", "state": "Sikkim", "latitude": 27.3389, "longitude": 88.6065},
+            {"location": "Tamil Nadu - Chennai", "state": "Tamil Nadu", "latitude": 13.0827, "longitude": 80.2707},
+            {"location": "Telangana - Hyderabad", "state": "Telangana", "latitude": 17.3850, "longitude": 78.4867},
+            {"location": "Tripura - Agartala", "state": "Tripura", "latitude": 23.8315, "longitude": 91.2868},
+            {"location": "Uttar Pradesh - Lucknow", "state": "Uttar Pradesh", "latitude": 26.8467, "longitude": 80.9462},
+            {"location": "Uttarakhand - Dehradun", "state": "Uttarakhand", "latitude": 30.3165, "longitude": 78.0322},
+            {"location": "West Bengal - Kolkata", "state": "West Bengal", "latitude": 22.5726, "longitude": 88.3639},
+            {"location": "Andaman and Nicobar Islands - Port Blair", "state": "Andaman and Nicobar Islands", "latitude": 11.6234, "longitude": 92.7265},
+            {"location": "Chandigarh - Chandigarh", "state": "Chandigarh", "latitude": 30.7333, "longitude": 76.7794},
+            {"location": "Dadra and Nagar Haveli and Daman and Diu - Daman", "state": "Dadra and Nagar Haveli and Daman and Diu", "latitude": 20.3974, "longitude": 72.8328},
+            {"location": "Delhi - New Delhi", "state": "Delhi", "latitude": 28.6139, "longitude": 77.2090},
+            {"location": "Jammu and Kashmir - Srinagar", "state": "Jammu and Kashmir", "latitude": 34.0837, "longitude": 74.7973},
+            {"location": "Ladakh - Leh", "state": "Ladakh", "latitude": 34.1526, "longitude": 77.5771},
+            {"location": "Lakshadweep - Kavaratti", "state": "Lakshadweep", "latitude": 10.5669, "longitude": 72.6420},
+            {"location": "Puducherry - Puducherry", "state": "Puducherry", "latitude": 11.9416, "longitude": 79.8083},
+        ])
+
+        st.markdown("**🗺️ India location**")
+        state_options = sorted(india_locations["state"].unique().tolist())
+        selected_state = st.selectbox(
+            "Select State",
+            ["Choose a state"] + state_options,
+            key="report_state",
+        )
+        previous_state = st.session_state.get("previous_report_state")
+        if previous_state != selected_state:
+            st.session_state.district_search_results = []
+            st.session_state.village_search_results = []
+            st.session_state.previous_report_state = selected_state
+
+        district_col, district_button_col = st.columns([3, 1])
+        with district_col:
+            district_query = st.text_input(
+                "District",
+                placeholder="Type district name",
+                label_visibility="collapsed",
+                key="district_query",
+            )
+        with district_button_col:
+            search_district = st.button("Find District", width="stretch")
+        if search_district and selected_state != "Choose a state" and district_query.strip():
+            try:
+                st.session_state.district_search_results = search_india_places(
+                    f"{district_query.strip()}, {selected_state}"
+                )
+            except Exception:
+                st.error("District search is temporarily unavailable.")
+
+        district_options = ["Choose a district"] + [
+            result["location"] for result in st.session_state.district_search_results
+        ]
+        selected_district = st.selectbox("Select District", district_options, key="report_district")
+
+        village_col, village_button_col = st.columns([3, 1])
+        with village_col:
+            village_query = st.text_input(
+                "Village",
+                placeholder="Type village or area name",
+                label_visibility="collapsed",
+                key="village_query",
+            )
+        with village_button_col:
+            search_village = st.button("Find Village", width="stretch")
+        if search_village and selected_state != "Choose a state" and village_query.strip():
+            district_context = selected_district if selected_district != "Choose a district" else ""
+            try:
+                st.session_state.village_search_results = search_india_places(
+                    f"{village_query.strip()}, {district_context}, {selected_state}"
+                )
+            except Exception:
+                st.error("Village search is temporarily unavailable.")
+
+        village_options = ["Choose a village or area"] + [
+            result["location"] for result in st.session_state.village_search_results
+        ]
+        selected_village = st.selectbox("Select Village", village_options, key="report_village")
+        cascade_location = next(
+            (result for result in st.session_state.village_search_results
+             if result["location"] == selected_village),
+            None,
+        )
+        if cascade_location:
+            st.session_state.selected_location = cascade_location
+
+        st.markdown("**🔎 Search any Indian village, town, city, or area**")
+        search_col, search_button_col = st.columns([3, 1])
+        with search_col:
+            place_search = st.text_input(
+                "Search place",
+                placeholder="e.g. Rampur village, Varanasi, Sector 17 Chandigarh",
+                label_visibility="collapsed",
+                key="place_search",
+            )
+        with search_button_col:
+            search_places = st.button("Search India", width="stretch")
+
+        if search_places:
+            if len(place_search.strip()) < 2:
+                st.warning("Enter at least 2 characters to search.")
+            else:
+                try:
+                    query = quote(f"{place_search.strip()}, India")
+                    request = Request(
+                        f"https://nominatim.openstreetmap.org/search?format=jsonv2&limit=8&addressdetails=1&q={query}",
+                        headers={"User-Agent": "CivicLensAI/1.0 civic-reporting-demo"},
+                    )
+                    with urlopen(request, timeout=8) as response:
+                        search_data = json.loads(response.read().decode("utf-8"))
+                    st.session_state.location_search_results = [
+                        {
+                            "location": item.get("display_name", "India place"),
+                            "state": item.get("address", {}).get("state", "India"),
+                            "latitude": float(item["lat"]),
+                            "longitude": float(item["lon"]),
+                        }
+                        for item in search_data
+                    ]
+                    if not st.session_state.location_search_results:
+                        st.info("No matching Indian places found. Try a nearby district or landmark.")
+                except Exception:
+                    st.error("Place search is temporarily unavailable. Choose a state below or enter coordinates manually.")
+
+        location_records = india_locations.to_dict("records") + st.session_state.location_search_results
+        location_names = [record["location"] for record in location_records]
+        selected_location_name = st.selectbox(
+            "Select state, city, village, or area",
+            ["Choose a location"] + location_names,
+            key="report_location_choice",
+        )
+        selected_location = None
+        if selected_location_name != "Choose a location":
+            selected_row = next(record for record in location_records if record["location"] == selected_location_name)
+            selected_location = {
+                "city": selected_row["location"],
+                "latitude": float(selected_row["latitude"]),
+                "longitude": float(selected_row["longitude"]),
+            }
+            st.session_state.selected_location = selected_location
+            st.session_state.latitude_input = f"{selected_location['latitude']:.4f}"
+            st.session_state.longitude_input = f"{selected_location['longitude']:.4f}"
+
+        selected_location = st.session_state.selected_location
+        if selected_location:
+            st.success(
+                f"Selected {selected_location['city']}: "
+                f"{selected_location['latitude']:.4f}, {selected_location['longitude']:.4f}"
+            )
+
         col_loc, col_coord = st.columns([1.5, 1])
         with col_loc:
+            if selected_location:
+                st.session_state.location_name_input = selected_location["city"]
             location_name = st.text_input(
                 "Location Name",
                 placeholder="e.g. Near College Campus, MG Road",
                 help="Enter the nearest landmark or address",
-                label_visibility="collapsed"
+                label_visibility="collapsed",
+                key="location_name_input",
             )
         with col_coord:
-            lat_input = st.text_input("Latitude (optional)", placeholder="28.6139", label_visibility="visible")
-            lng_input = st.text_input("Longitude (optional)", placeholder="77.2090", label_visibility="visible")
+            lat_input = st.text_input(
+                "Latitude (optional)",
+                placeholder="28.6139",
+                label_visibility="visible",
+                key="latitude_input",
+            )
+            lng_input = st.text_input(
+                "Longitude (optional)",
+                placeholder="77.2090",
+                label_visibility="visible",
+                key="longitude_input",
+            )
 
         # Description
         st.markdown("**✏️ Problem Description**")
@@ -183,7 +402,7 @@ if st.session_state.analysis_result is None:
         with submit_col:
             submit_btn = st.button(
                 "🚀  Analyze & Submit Report",
-                use_container_width=True,
+                width="stretch",
                 type="primary",
                 disabled=(image_source is None)
             )
@@ -414,7 +633,7 @@ else:
         if result.get("image_bytes"):
             st.markdown("<br>", unsafe_allow_html=True)
             img = Image.open(io.BytesIO(result["image_bytes"]))
-            st.image(img, caption="📷 Submitted Image", use_container_width=True)
+            st.image(img, caption="📷 Submitted Image", width="stretch")
 
     with col_score:
         # Priority Score Ring
@@ -483,14 +702,14 @@ else:
 
     btn1, btn2, btn3 = st.columns(3)
     with btn1:
-        if st.button("📊 View Dashboard", use_container_width=True):
+        if st.button("📊 View Dashboard", width="stretch"):
             st.switch_page("pages/2_Dashboard.py")
     with btn2:
-        if st.button("🔍 View Full Report", use_container_width=True):
+        if st.button("🔍 View Full Report", width="stretch"):
             st.session_state["selected_report_id"] = report_id
             st.switch_page("pages/3_Report_Details.py")
     with btn3:
-        if st.button("📸 Submit Another Report", use_container_width=True, type="primary"):
+        if st.button("📸 Submit Another Report", width="stretch", type="primary"):
             st.session_state.analysis_result = None
             st.session_state.form_image_bytes = None
             st.rerun()

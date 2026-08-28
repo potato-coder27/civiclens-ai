@@ -13,11 +13,12 @@ showSidebarNavigation = true
 level = "info"
 
 [server]
+address = "0.0.0.0"
 headless = true
 enableXsrfProtection = false
 enableCORS = true
 maxUploadSize = 200
-port = 8502
+port = 8501
 enableWebsocketCompression = true
 allowRunOnSave = false
 
